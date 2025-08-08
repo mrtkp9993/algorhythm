@@ -3,7 +3,6 @@ let currentChar = 0;
 let displayText = [];
 let isTyping = true;
 let projects = [];
-let selectedIndex = 0;
 let terminalReady = false;
 
 function setup() {
@@ -60,8 +59,6 @@ function initializeTerminal() {
     });
 
     displayText.push('');
-    displayText.push('Use UP/DOWN arrows to navigate, ENTER to open project');
-    displayText.push('');
 }
 
 function draw() {
@@ -69,12 +66,34 @@ function draw() {
 
     fill(154, 215, 179);
 
-    let fontSize = 16;
+    let fontSize = Math.max(8, Math.min(16, windowWidth / 50));
     textSize(fontSize);
 
     let lineHeight = fontSize + 4;
     let startY = 20;
     let startX = 20;
+
+    let isHovering = false;
+    if (terminalReady) {
+        for (let i = 0; i < displayText.length; i++) {
+            let y = startY + i * lineHeight;
+            let line = displayText[i];
+
+            if (line.match(/^\[\d+\]/)) {
+                if (
+                    mouseX >= startX &&
+                    mouseX <= startX + textWidth(line) &&
+                    mouseY >= y &&
+                    mouseY <= y + lineHeight
+                ) {
+                    isHovering = true;
+                    break;
+                }
+            }
+        }
+    }
+
+    cursor(isHovering ? HAND : ARROW);
 
     let visibleLines = Math.floor((height - 40) / lineHeight);
     let startLine = Math.max(0, displayText.length - visibleLines);
@@ -98,15 +117,6 @@ function draw() {
                 }
             }
         } else if (!isTyping || i < currentLine) {
-            if (
-                !isTyping &&
-                terminalReady &&
-                line.startsWith(`[${selectedIndex + 1}]`)
-            ) {
-                fill(20, 51, 38);
-                rect(startX - 2, y - 2, textWidth(line) + 4, lineHeight);
-            }
-
             if (line.includes('algorhythm')) {
                 fill(179, 215, 204);
             } else if (
@@ -116,20 +126,43 @@ function draw() {
             ) {
                 fill(128, 140, 135);
             } else if (line.startsWith('[') && line.includes(']')) {
-                if (
-                    !isTyping &&
-                    terminalReady &&
-                    line.startsWith(`[${selectedIndex + 1}]`)
-                ) {
-                    fill(255, 255, 150);
-                } else {
-                    fill(154, 215, 179);
-                }
+                fill(154, 215, 179);
             } else {
                 fill(154, 215, 179);
             }
 
             text(line, startX, y);
+        }
+    }
+}
+
+function mousePressed() {
+    if (!terminalReady) return;
+
+    let fontSize = Math.max(8, Math.min(16, windowWidth / 50));
+    let lineHeight = fontSize + 4;
+    let startY = 20;
+    let startX = 20;
+
+    for (let i = 0; i < displayText.length; i++) {
+        let y = startY + i * lineHeight;
+        let line = displayText[i];
+
+        if (line.match(/^\[\d+\]/)) {
+            if (
+                mouseX >= startX &&
+                mouseX <= startX + textWidth(line) &&
+                mouseY >= y &&
+                mouseY <= y + lineHeight
+            ) {
+                let projectNum = parseInt(line.match(/\[(\d+)\]/)[1]);
+                let projectIndex = projectNum - 1;
+
+                if (projectIndex >= 0 && projectIndex < projects.length) {
+                    window.open(projects[projectIndex].link, '_blank');
+                }
+                break;
+            }
         }
     }
 }
@@ -149,22 +182,6 @@ function drawScanlines() {
         rect(i, i, width - i * 2, height - i * 2);
     }
     noStroke();
-}
-
-function keyPressed() {
-    if (!terminalReady) return;
-
-    if (projects && projects.length > 0) {
-        if (keyCode === UP_ARROW) {
-            selectedIndex = Math.max(0, selectedIndex - 1);
-            updateProjectHighlight();
-        } else if (keyCode === DOWN_ARROW) {
-            selectedIndex = Math.min(projects.length - 1, selectedIndex + 1);
-            updateProjectHighlight();
-        } else if (keyCode === ENTER) {
-            openProject(selectedIndex);
-        }
-    }
 }
 
 function updateProjectHighlight() {}
